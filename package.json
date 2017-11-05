@@ -11,6 +11,7 @@
   "author": "JUNG YONG WOO",
   "license": "MIT",
   "devDependencies": {
+    "@types/moment": "^2.13.0",
     "@types/jquery": "^3.2.15",
     "@types/lodash": "^4.14.81",
     "@types/numeral": "0.0.22",
@@ -28,6 +29,7 @@
   "dependencies": {
     "jquery": "^3.2.1",
     "lodash": "^4.17.4",
+    "moment": "^2.19.1",
     "numeral": "^2.0.6",
     "pixi.js": "^4.6.0",
     "webgl-2d": "0.0.2"
