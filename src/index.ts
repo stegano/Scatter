@@ -1,8 +1,9 @@
 import * as numeral from "numeral";
+import * as moment from "moment";
 import * as PIXI from "pixi.js";
 import { defaults, extend } from "lodash";
 
-interface ScatterOptions {
+export interface ScatterOptions {
     canvasWidth?: number;
     canvasHeight?: number;
     target?: HTMLElement;
@@ -12,23 +13,22 @@ interface ScatterOptions {
     axisLabelOptions?: AxisLabelOptions;
 }
 
-interface AxisOptions {
+export interface AxisOptions {
     xAxis: Axis;
     yAxis: Axis;
 }
 
-interface Axis {
+export interface Axis {
     min: number;
     max: number;
-    gap: number;
 }
 
-interface AxisLabelOptions {
+export interface AxisLabelOptions {
     xAxis: AxisLabel;
     yAxis: AxisLabel;
 }
 
-interface AxisLabel {
+export interface AxisLabel {
     fontFamily: string;
     fontSize: number;
     fill: number | string;
@@ -46,10 +46,9 @@ class Scatter {
 
     protected datas: any;
 
-    constructor(scatterOptions: ScatterOptions) {
+    constructor(scatterOptions?: ScatterOptions) {
         const defaultAxis = {
-            gap: 10,
-            max: 100,
+            max: 5000,
             min: 0,
         };
         const defaultAxisLabel = {
@@ -73,20 +72,26 @@ class Scatter {
             },
         });
         // samples
-        this.datas = [];
-        for (let endTime = 1508416235540, i = 0; i < 2e4; i++) {
+        this.datas = [
+            [ 485, 9124 ]
+        ];
+
+        this.options.axisOptions.xAxis.min = 1508416235540;
+
+        for (let endTime = 1508416235540, i = 0; i < 1e4; i++) {
             this.datas.push([
-                [ endTime + (i * 1000), Math.round(Math.random() * 5000) ],
+                endTime + (i * 1000), Math.round(Math.random() * 5000)
             ]);
+            this.options.axisOptions.xAxis.max = endTime + (i * 1000);
         }
 
-        console.log(`**sample datas`);
-        console.dir(this.datas);
         this.initPixi(this.options);
     }
 
     // 데이터를 리셋.
     public setDatas(datas: any): Scatter {
+        this.datas = datas;
+        this.rerender();
         return this;
     }
 
@@ -101,8 +106,9 @@ class Scatter {
     }
 
     // 옵션을 다시 설정.
-    public setOptions(options: any): Scatter {
-        return this;
+    public setOptions(options: ScatterOptions): Scatter {
+        this.options = options;
+        return this.rerender();
     }
 
     // 캔버스 사이즈 영역을 조정.
@@ -129,6 +135,11 @@ class Scatter {
         return this;
     }
 
+    // 현재 설정된 옵션정보의 복사본을 반환.
+    public getOptions(): ScatterOptions {
+        return JSON.parse(JSON.stringify(this.options));
+    }
+
 
     protected initPixi(options: ScatterOptions): Scatter {
         const { canvasWidth, canvasHeight, target } = options;
@@ -149,14 +160,18 @@ class Scatter {
     protected updateBoxSize(canvasWidth: number, canvasHeight: number, boxPadding: number): {
         boxWidth: number,
         boxHeight: number,
+        boxOffsetX: number,
+        boxOffsetY: number,
     } {
-        this.boxWidth = canvasWidth - boxPadding;
-        this.boxHeight = canvasHeight - boxPadding;
-        this.boxOffsetX = boxPadding;
-        this.boxOffsetY = boxPadding;
+        this.boxWidth = canvasWidth - (boxPadding * 2);
+        this.boxHeight = canvasHeight - (boxPadding * 2);
+        this.boxOffsetX = boxPadding + this.boxWidth;
+        this.boxOffsetY = boxPadding + this.boxHeight;
         return {
             boxWidth: this.boxWidth,
             boxHeight: this.boxHeight,
+            boxOffsetX: this.boxOffsetX,
+            boxOffsetY: this.boxOffsetY,
         };
     }
 
@@ -164,36 +179,39 @@ class Scatter {
     protected drawChartBox(options: ScatterOptions): Scatter {
         const { app } = this;
         const { canvasWidth, canvasHeight, boxPadding, axisOptions, axisLabelOptions } = options;
-        const { boxWidth, boxHeight } = this.updateBoxSize(canvasWidth, canvasHeight, boxPadding);
+        const { boxWidth, boxHeight, boxOffsetX, boxOffsetY } = this.updateBoxSize(canvasWidth, canvasHeight, boxPadding);
+        const xAxisLabelCnt = Math.ceil(canvasWidth / 100);
+        const yAxisLabelCnt = Math.ceil(canvasHeight / 50);
         const graphics = new PIXI.Graphics();
         graphics.x = 0;
         graphics.y = 0;
         graphics.lineStyle(1, 0xFFFFFF, 1);
         graphics.moveTo(boxPadding, boxPadding);
-        graphics.lineTo(boxPadding, boxHeight);
-        graphics.moveTo(boxWidth, boxHeight);
-        graphics.lineTo(boxPadding, boxHeight);
+        graphics.lineTo(boxPadding, boxOffsetY);
+        graphics.lineTo(boxOffsetX, boxOffsetY);
         graphics.endFill();
         // yAxisLabels
         const yAxisLabels: any[] = [];
         for (let text: PIXI.Text,
-                 length = Math.ceil((axisOptions.yAxis.max - axisOptions.yAxis.min) / axisOptions.yAxis.gap),
+                 length = yAxisLabelCnt,
+                 gap = axisOptions.yAxis.max / length,
                  i = 0; i < length + 1; i++) {
             text = new PIXI.Text(
-                numeral(axisOptions.yAxis.min + axisOptions.yAxis.gap * i).format("0,0a"), axisLabelOptions.yAxis);
-            text.y = boxHeight - ((boxHeight - boxPadding) / length * i) - 10;
+                numeral(axisOptions.yAxis.min + (gap * i)).format("0,0a"), axisLabelOptions.yAxis);
+            text.y = boxOffsetY - (boxHeight / length * i) - 10;
             text.x = 20;
             yAxisLabels.push(text);
         }
         // xAxisLabels
         const xAxisLabels: any[] = [];
         for (let text: PIXI.Text,
-                 length = Math.ceil((axisOptions.xAxis.max - axisOptions.xAxis.min) / axisOptions.xAxis.gap),
+                 length = xAxisLabelCnt,
+                 gap = axisOptions.xAxis.max / length,
                  i = 0; i < length + 1; i++) {
             text = new PIXI.Text(
-                numeral(axisOptions.xAxis.min + axisOptions.xAxis.gap * i).format("0,0a"), axisLabelOptions.xAxis);
-            text.y = boxHeight + 10;
-            text.x = boxPadding + ((boxWidth - boxPadding) / length * i);
+                moment(axisOptions.xAxis.min + (gap * i)).format("HH:ss:mm"), axisLabelOptions.xAxis);
+            text.y = boxOffsetY + 20;
+            text.x = boxPadding + (boxWidth / length * i) - text.width / 2;
             xAxisLabels.push(text);
         }
         app.stage.addChild.apply(app.stage, xAxisLabels.concat(yAxisLabels, graphics));
@@ -202,7 +220,7 @@ class Scatter {
 
     // 화면에 데이터 정보를 그림.
     protected drawParticle(): Scatter {
-        const pointer = require("./images/point.png");
+        const pointer = require("./images/circle.png");
         const sprites = new PIXI.particles.ParticleContainer(10000, {
             scale: true,
             position: true,
@@ -213,12 +231,10 @@ class Scatter {
         const items = [];
         const { app, datas } = this;
         for (let item, i = 0; i < datas.length; i++) {
-            // create a new Sprite
             item = PIXI.Sprite.fromImage(pointer);
             item.tint = Math.random() * 0xE8D4CD;
-            item.scale.set(.1);
-            item.x = Math.random() * (this.boxWidth - this.options.boxPadding) + this.boxOffsetX;
-            item.y = Math.random() * (this.boxHeight) - this.boxOffsetY;
+            [ item.x, item.y ] = this.transformCoordinate.apply(this, datas[ i ]);
+            item.anchor.set(.5);
             item.tint = Math.random() * 0x808080;
             items.push(item);
         }
@@ -227,9 +243,14 @@ class Scatter {
         return this;
     }
 
-    protected transformCoordinate(x: number, y: number): number[] {
-        const ret: number[] = [];
-        return ret;
+    protected transformCoordinate(xValue: number, yValue: number): number[] {
+        const { boxPadding } = this.options;
+        const { xAxis, yAxis } = this.options.axisOptions;
+        const { boxOffsetX, boxOffsetY, boxWidth, boxHeight } = this;
+        var [ x, y ] = [ boxWidth * (xValue / xAxis.max) + boxPadding, boxHeight - (boxHeight) * (yValue / yAxis.max) + boxPadding ];
+        x = Math.min(x, boxOffsetX);
+        y = Math.max(y, boxOffsetY - boxHeight);
+        return [ x, y ]
     }
 }
 
