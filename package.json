@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "node_modules/.bin/tslint ./src/**.ts",
     "build": "node_modules/.bin/webpack",
-    "docs": "node_modules/.bin/typedoc --out ./out ./src/**.ts"
+    "doc": "node_modules/.bin/typedoc --out ./out ./src/**.ts"
   },
   "author": "JUNG YONG WOO",
   "license": "MIT",
