@@ -1,7 +1,7 @@
 import * as numeral from "numeral";
 import * as moment from "moment";
 import * as PIXI from "pixi.js";
-import { defaults, extend } from "lodash";
+import { defaults, extend, clone } from "lodash";
 
 export interface ScatterOptions {
     canvasWidth?: number;
@@ -63,12 +63,12 @@ class Scatter {
             maxPoint: 2e5,
             boxPadding: 50,
             axisOptions: {
-                xAxis: defaultAxis,
-                yAxis: defaultAxis,
+                xAxis: clone(defaultAxis),
+                yAxis: clone(defaultAxis),
             },
             axisLabelOptions: {
-                xAxis: defaultAxisLabel,
-                yAxis: defaultAxisLabel,
+                xAxis: clone(defaultAxisLabel),
+                yAxis: clone(defaultAxisLabel),
             },
         });
         // samples
@@ -78,7 +78,7 @@ class Scatter {
 
         this.options.axisOptions.xAxis.min = 1508416235540;
 
-        for (let endTime = 1508416235540, i = 0; i < 1e4; i++) {
+        for (let endTime = 1508416235540, i = 0; i < 1e5; i++) {
             this.datas.push([
                 endTime + (i * 1000), Math.round(Math.random() * 5000)
             ]);
@@ -143,7 +143,7 @@ class Scatter {
 
     protected initPixi(options: ScatterOptions): Scatter {
         const { canvasWidth, canvasHeight, target } = options;
-        this.app = new PIXI.Application(canvasWidth, canvasHeight);
+        this.app = new PIXI.Application(canvasWidth, canvasHeight, {});
         target.appendChild(this.app.view);
         this.render(options);
         return this;
@@ -209,7 +209,7 @@ class Scatter {
                  gap = axisOptions.xAxis.max / length,
                  i = 0; i < length + 1; i++) {
             text = new PIXI.Text(
-                moment(axisOptions.xAxis.min + (gap * i)).format("HH:ss:mm"), axisLabelOptions.xAxis);
+                moment(axisOptions.xAxis.min + (gap * i)).format("HH:mm:ss"), axisLabelOptions.xAxis);
             text.y = boxOffsetY + 20;
             text.x = boxPadding + (boxWidth / length * i) - text.width / 2;
             xAxisLabels.push(text);
@@ -235,6 +235,8 @@ class Scatter {
             item.tint = Math.random() * 0xE8D4CD;
             [ item.x, item.y ] = this.transformCoordinate.apply(this, datas[ i ]);
             item.anchor.set(.5);
+            item.width = 5;
+            item.height = 5;
             item.tint = Math.random() * 0x808080;
             items.push(item);
         }

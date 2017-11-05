@@ -7,11 +7,14 @@ import { debounce } from "lodash";
 import  Scatter, { ScatterOptions } from "../src/index";
 import "./index.css";
 
-var scatter = new Scatter();
+var scatter = new Scatter({
+    canvasWidth: window.innerWidth,
+    canvasHeight: window.innerHeight,
+});
 
 // 윈도우 리사이징 이벤트.
 $(window).on("resize", debounce(() => {
-    scatter.setResize(window.innerWidth, 800)
+    scatter.setResize(window.innerWidth, window.innerHeight);
 }, 300));
 
 // 윈도우 리사이징 이벤트.
@@ -31,5 +34,4 @@ $(window).on("keydown", debounce((e) => {
             }
             break;
     }
-    scatter.setOptions(options);
 }, 300));
