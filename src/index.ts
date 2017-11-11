@@ -7,7 +7,6 @@ export interface ScatterOptions {
     canvasWidth?: number;
     canvasHeight?: number;
     target?: HTMLElement;
-    maxPoint?: number;
     boxPadding?: number;
     axisOptions?: AxisOptions;
     axisLabelOptions?: AxisLabelOptions;
@@ -34,9 +33,14 @@ export interface AxisLabel {
     fill: number | string;
 }
 
+export interface ScatterData {
+    [index: number]: number
+}
+
 class Scatter {
     protected options: ScatterOptions;
     protected app: PIXI.Application;
+    protected dataSet: ScatterData[];
 
     protected boxWidth: number;
     protected boxHeight: number;
@@ -44,12 +48,12 @@ class Scatter {
     protected boxOffsetX: number;
     protected boxOffsetY: number;
 
-    protected datas: any;
+    protected particleImage: string;
 
     constructor(scatterOptions?: ScatterOptions) {
         const defaultAxis = {
-            max: 5000,
-            min: 0,
+            max: Number.MIN_VALUE,
+            min: Number.MAX_VALUE,
         };
         const defaultAxisLabel = {
             fill: "white",
@@ -60,7 +64,6 @@ class Scatter {
             canvasWidth: 1280,
             canvasHeight: 800,
             target: document.body,
-            maxPoint: 2e5,
             boxPadding: 50,
             axisOptions: {
                 xAxis: clone(defaultAxis),
@@ -71,33 +74,21 @@ class Scatter {
                 yAxis: clone(defaultAxisLabel),
             },
         });
-        // samples
-        this.datas = [
-            [ 485, 9124 ]
-        ];
-
-        this.options.axisOptions.xAxis.min = 1508416235540;
-
-        for (let endTime = 1508416235540, i = 0; i < 1e5; i++) {
-            this.datas.push([
-                endTime + (i * 1000), Math.round(Math.random() * 5000)
-            ]);
-            this.options.axisOptions.xAxis.max = endTime + (i * 1000);
-        }
-
+        this.particleImage = require("./images/particle.png");
+        this.dataSet = [];
         this.initPixi(this.options);
     }
 
     // 데이터를 리셋.
-    public setDatas(datas: any): Scatter {
-        this.datas = datas;
-        this.rerender();
-        return this;
+    public resetData(dataSet: ScatterData[]): Scatter {
+        this.dataSet = dataSet;
+        return this.rerender();
     }
 
     // 데이터를 추가.
-    public addDatas(): Scatter {
-        return this;
+    public addData(dataSet: ScatterData[]): Scatter {
+        this.dataSet.push.apply(this.dataSet, dataSet);
+        return this.rerender();
     }
 
     // 라벨 옵션을 다시 설정.
@@ -106,9 +97,12 @@ class Scatter {
     }
 
     // 옵션을 다시 설정.
-    public setOptions(options: ScatterOptions): Scatter {
+    public setOptions(options: ScatterOptions, isRender: boolean = false): Scatter {
         this.options = options;
-        return this.rerender();
+        if (isRender) {
+            this.rerender();
+        }
+        return this;
     }
 
     // 캔버스 사이즈 영역을 조정.
@@ -206,7 +200,7 @@ class Scatter {
         const xAxisLabels: any[] = [];
         for (let text: PIXI.Text,
                  length = xAxisLabelCnt,
-                 gap = axisOptions.xAxis.max / length,
+                 gap = (axisOptions.xAxis.max - axisOptions.xAxis.min) / length,
                  i = 0; i < length + 1; i++) {
             text = new PIXI.Text(
                 moment(axisOptions.xAxis.min + (gap * i)).format("HH:mm:ss"), axisLabelOptions.xAxis);
@@ -220,8 +214,8 @@ class Scatter {
 
     // 화면에 데이터 정보를 그림.
     protected drawParticle(): Scatter {
-        const pointer = require("./images/circle.png");
-        const sprites = new PIXI.particles.ParticleContainer(10000, {
+        const { app, dataSet } = this;
+        const sprites = new PIXI.particles.ParticleContainer(dataSet.length, {
             scale: true,
             position: true,
             rotation: true,
@@ -229,19 +223,18 @@ class Scatter {
             alpha: true,
         });
         const items = [];
-        const { app, datas } = this;
-        for (let item, i = 0; i < datas.length; i++) {
-            item = PIXI.Sprite.fromImage(pointer);
-            item.tint = Math.random() * 0xE8D4CD;
-            [ item.x, item.y ] = this.transformCoordinate.apply(this, datas[ i ]);
+        for (let item, i = 0; i < dataSet.length; i++) {
+            item = PIXI.Sprite.fromImage(this.particleImage);
+            [ item.x, item.y ] = this.transformCoordinate.apply(this, dataSet[ i ]);
             item.anchor.set(.5);
             item.width = 5;
             item.height = 5;
-            item.tint = Math.random() * 0x808080;
             items.push(item);
         }
-        sprites.addChild.apply(sprites, items);
-        app.stage.addChild(sprites);
+        if (items.length > 0) {
+            sprites.addChild.apply(sprites, items);
+            app.stage.addChild(sprites);
+        }
         return this;
     }
 
@@ -249,7 +242,7 @@ class Scatter {
         const { boxPadding } = this.options;
         const { xAxis, yAxis } = this.options.axisOptions;
         const { boxOffsetX, boxOffsetY, boxWidth, boxHeight } = this;
-        var [ x, y ] = [ boxWidth * (xValue / xAxis.max) + boxPadding, boxHeight - (boxHeight) * (yValue / yAxis.max) + boxPadding ];
+        var [ x, y ] = [ boxWidth * ((xValue - xAxis.min) / (xAxis.max - xAxis.min)) + boxPadding, boxHeight - (boxHeight) * ((yValue - yAxis.min) / (yAxis.max - yAxis.min)) + boxPadding ];
         x = Math.min(x, boxOffsetX);
         y = Math.max(y, boxOffsetY - boxHeight);
         return [ x, y ]
