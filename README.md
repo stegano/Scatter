@@ -5,13 +5,38 @@ Scatter is a graphic chart library based on WebGL(using [PixiJS](http://www.pixi
 
 ## Examples
 
+Please see the below document for details.
+
 ```javascript
-var scatter = new Scatter({
-  target: document.body
+var scatter: Scatter = new Scatter({
+    canvasWidth: 1280,
+    canvasHeight: 800,
+    axisOptions: {
+        xAxis: {
+            min: new Date().getTime(),
+            max: new Date().getTime(),
+        },
+        yAxis: {
+            min: 0,
+            max: 5000,
+        }
+    },
+    axisLabelOptions: {
+        xAxis: {
+            fontFamily: "consolas",
+            fontSize: 11,
+            fill: "white",
+        },
+        yAxis: {
+            fontFamily: "consolas",
+            fontSize: 11,
+            fill: "white",
+        }
+    }
 });
 ```
 
-## Docs
+## Document
 
 Create an API document using [Typedoc](http://typedoc.org).
 
@@ -19,5 +44,4 @@ Create an API document using [Typedoc](http://typedoc.org).
 npm install
 npm run doc
 ```
-
 
