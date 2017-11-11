@@ -6,12 +6,13 @@
   "scripts": {
     "lint": "node_modules/.bin/tslint ./src/**.ts",
     "build": "node_modules/.bin/webpack",
+    "build:dev": "node_modules/.bin/webpack -dw",
     "doc": "node_modules/.bin/typedoc --out ./out ./src/**.ts"
   },
   "author": "JUNG YONG WOO",
   "license": "MIT",
   "devDependencies": {
-    "@types/jquery": "^3.2.15",
+    "@types/jquery": "^3.2.16",
     "@types/lodash": "^4.14.81",
     "@types/numeral": "0.0.22",
     "@types/pixi.js": "^4.5.7",
